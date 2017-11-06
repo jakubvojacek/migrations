@@ -22,10 +22,11 @@ class OrderResolver
 	 * @param  Group[]     $groups
 	 * @param  File[]      $files
 	 * @param  string      $mode
+	 *
 	 * @return File[]
 	 * @throws LogicException
 	 */
-	public function resolve(array $migrations, array $groups, array $files, $mode, $force = FALSE)
+	public function resolve(array $migrations, array $groups, array $files, $mode, $force = FALSE, $driver = NULL)
 	{
 		$groups = $this->getAssocGroups($groups);
 		$this->validateGroups($groups);
@@ -59,14 +60,17 @@ class OrderResolver
 
 				if (isset($files[$groupName][$filename])) {
 					$file = $files[$groupName][$filename];
-					if ($migration->checksum !== $file->checksum && !$force) {
-						throw new LogicException(sprintf(
-							'Previously executed migration "%s/%s" has been changed. File checksum is "%s", but executed migration had checksum "%s".',
-							$groupName, $filename, $file->checksum, $migration->checksum
-						));
+					if ($migration->checksum !== $file->checksum) {
+						if ($force) {
+							$driver->getDBal()->exec('update migrations set checksum = "' . $file->checksum . '" where checksum = "' . $migration->checksum . '"');
+						} else {
+							throw new LogicException(sprintf(
+								'Previously executed migration "%s/%s" has been changed. File checksum is "%s", but executed migration had checksum "%s".',
+								$groupName, $filename, $file->checksum, $migration->checksum
+							));
+						}
 					}
 					unset($files[$groupName][$filename]);
-
 				} elseif ($group->enabled) {
 					throw new LogicException(sprintf(
 						'Previously executed migration "%s/%s" is missing.',
@@ -109,6 +113,7 @@ class OrderResolver
 	/**
 	 * @param  File[] $files
 	 * @param  array  $groups (name => Group)
+	 *
 	 * @return File[] sorted
 	 */
 	protected function sortFiles(array $files, array $groups)
@@ -120,7 +125,6 @@ class OrderResolver
 				$cmpB = $this->isGroupDependentOn($groups, $b->group, $a->group);
 				if ($cmpA xor $cmpB) {
 					$cmp = ($cmpA ? -1 : 1);
-
 				} else {
 					$names = [
 						"{$a->group->name}/{$a->name}",
@@ -144,9 +148,10 @@ class OrderResolver
 	/**
 	 * Returns TRUE if groupA depends on groupB.
 	 *
-	 * @param  array  $groups (name => Group)
+	 * @param  array $groups (name => Group)
 	 * @param  Group $groupA
 	 * @param  Group $groupB
+	 *
 	 * @return bool
 	 */
 	protected function isGroupDependentOn(array $groups, Group $groupA, Group $groupB)
@@ -174,7 +179,7 @@ class OrderResolver
 
 	protected function getAssocMigrations(array $migrations)
 	{
-		$assoc = array();
+		$assoc = [];
 		foreach ($migrations as $migration) {
 			$assoc[$migration->group][$migration->filename] = $migration;
 		}
@@ -184,7 +189,7 @@ class OrderResolver
 
 	protected function getAssocGroups(array $groups)
 	{
-		$assoc = array();
+		$assoc = [];
 		foreach ($groups as $group) {
 			$assoc[$group->name] = $group;
 		}
@@ -194,7 +199,7 @@ class OrderResolver
 
 	protected function getAssocFiles(array $files)
 	{
-		$assoc = array();
+		$assoc = [];
 		foreach ($files as $file) {
 			$assoc[$file->group->name][$file->name] = $file;
 		}
@@ -204,7 +209,7 @@ class OrderResolver
 
 	protected function getFlatFiles(array $files)
 	{
-		$flat = array();
+		$flat = [];
 		foreach ($files as $tmp) {
 			foreach ($tmp as $file) {
 				$flat[] = $file;
@@ -216,6 +221,7 @@ class OrderResolver
 
 	/**
 	 * @param  File[] $files
+	 *
 	 * @return File[] first file for each group
 	 */
 	protected function getFirstFiles(array $files)
@@ -232,6 +238,7 @@ class OrderResolver
 
 	/**
 	 * @param  Group[] $groups
+	 *
 	 * @return void
 	 * @throws LogicException
 	 */
@@ -244,7 +251,6 @@ class OrderResolver
 						'Group "%s" depends on unknown group "%s".',
 						$group->name, $dependency
 					));
-
 				} elseif ($group->enabled && !$groups[$dependency]->enabled) {
 					throw new LogicException(sprintf(
 						'Group "%s" depends on disabled group "%s". Please enable group "%s" to continue.',

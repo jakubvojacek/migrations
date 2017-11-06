@@ -25,7 +25,7 @@ class OrderResolver
 	 * @return File[]
 	 * @throws LogicException
 	 */
-	public function resolve(array $migrations, array $groups, array $files, $mode)
+	public function resolve(array $migrations, array $groups, array $files, $mode, $force = FALSE)
 	{
 		$groups = $this->getAssocGroups($groups);
 		$this->validateGroups($groups);
@@ -59,7 +59,7 @@ class OrderResolver
 
 				if (isset($files[$groupName][$filename])) {
 					$file = $files[$groupName][$filename];
-					if ($migration->checksum !== $file->checksum) {
+					if ($migration->checksum !== $file->checksum && !$force) {
 						throw new LogicException(sprintf(
 							'Previously executed migration "%s/%s" has been changed. File checksum is "%s", but executed migration had checksum "%s".',
 							$groupName, $filename, $file->checksum, $migration->checksum

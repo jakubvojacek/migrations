@@ -20,13 +20,14 @@ class ContinueCommand extends BaseCommand
 	{
 		$this->setName('migrations:continue');
 		$this->setDescription('Updates database schema by running all new migrations');
+		$this->addOption('force', 'f');
 		$this->setHelp("If table 'migrations' does not exist in current database, it is created automatically.");
 	}
 
 
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
-		$this->runMigrations(Runner::MODE_CONTINUE, $this->config);
+		$this->runMigrations(Runner::MODE_CONTINUE, $this->config, $input->getOption('force'));
 	}
 
 }

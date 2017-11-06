@@ -100,7 +100,7 @@ class Runner
 		if ($mode === self::MODE_INIT) {
 			$this->printer->printSource($this->driver->getInitTableSource() . "\n");
 			$files = $this->finder->find($this->groups, array_keys($this->extensionsHandlers));
-			$files = $this->orderResolver->resolve(array(), $this->groups, $files, self::MODE_RESET, $force);
+			$files = $this->orderResolver->resolve(array(), $this->groups, $files, self::MODE_RESET, $force, $this->driver);
 			$this->printer->printSource($this->driver->getInitMigrationsSource($files));
 			return;
 		}
@@ -118,7 +118,7 @@ class Runner
 			$this->driver->createTable();
 			$migrations = $this->driver->getAllMigrations();
 			$files = $this->finder->find($this->groups, array_keys($this->extensionsHandlers));
-			$toExecute = $this->orderResolver->resolve($migrations, $this->groups, $files, $mode, $force);
+			$toExecute = $this->orderResolver->resolve($migrations, $this->groups, $files, $mode, $force, $this->driver);
 			$this->printer->printToExecute($toExecute);
 
 			foreach ($toExecute as $file) {

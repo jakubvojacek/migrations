@@ -40,6 +40,15 @@ abstract class BaseDriver implements IDriver
 
 
 	/**
+	 * @return IDbal
+	 */
+	public function getDBal()
+	{
+		return $this->dbal;
+	}
+
+
+	/**
 	 * Loads and executes SQL queries from given file. Taken from Adminer (Apache License), modified.
 	 *
 	 * @author   Jakub Vrána
